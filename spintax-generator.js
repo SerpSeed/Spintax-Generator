@@ -1,99 +1,76 @@
-jQuery(document).ready(function() {
+var loadText = document.getElementById("load-text");
+var loadFileText = document.getElementById("load-file");
+var genericKeywords = document.getElementById("generic-keywords");
+var clearText = document.getElementById("clear-text");
+var createSpintax = document.getElementById("create-spintax");
+var saveFile = document.getElementById("save-file");
+var textArea = document.getElementById("spintax-textarea");
 
-  // Execute on button click
-  jQuery('button').click(function(e) {
-  
-    // Check which button has been clicked - match each case
-    var idClicked = e.target.id;
-    
-    switch (idClicked) {
-    
-    	case "createSpintax":	// Generate Spintax from input on textarea
-  
-  		// Check if textarea is empty, if so print warning, else generate spintax
-  		if (!jQuery('#spintax-textarea').val()) {    
-      	jQuery('#spintax-textarea').attr("placeholder", "Hello! You need to add a list of words or phrases you would like to generate into spintax.")      
-        } else {
+loadText.addEventListener("click", function () {
+    loadFileText.click();
+});
 
-        var data = jQuery('#spintax-textarea').val().split(/\r?\n/);
-        var cleaned = data.filter(n => n);
-        var result = cleaned.join('|');
+// Handler For Loading Text Files
+loadFileText.addEventListener("change", function () {
+    var file = loadFileText.files[0];
 
-        // Prepare result and print to textarea
-        result = "\{" + result + "\}";    
-        jQuery('#spintax-textarea').val(result);
-
-      	}
-      	break;
-        
-      case "clearText":	// Clear URL Textarea
-        e.preventDefault();
-        jQuery('#spintax-textarea').val('');
-        break;
-    
-      case "genericKeywords":	// Load list of generic keywords from server source - Needs to be on same domain as script
-        jQuery.ajax({
-          url: "https://serpseed.com/wp-content/themes/serpseed/seo-tools/files/generic-keywords.txt",
-          dataType: "text",
-          success: function(data) {
-            jQuery('#spintax-textarea').val(data);
-          }
-        });
-        break;
-        
-      case "loadText":	// Load words from file - Requires HTML input type="file"
-        jQuery('#loadTextFile').trigger('click');
-        break;
-        
-      case "saveFile":	// Save contents of results textarea to .TXT file
-        var textToSave = jQuery('#spintax-textarea').val();
-        var textToSaveAsBlob = new Blob([textToSave], {
-          type: "text/plain"
-        });
-        var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
-        var fileNameToSaveAs = jQuery('#saveFilename').val() + ".txt"
-
-        var downloadLink = document.createElement("a");
-        downloadLink.download = fileNameToSaveAs;
-        downloadLink.innerHTML = "Download File";
-        downloadLink.href = textToSaveAsURL;
-        downloadLink.onclick = destroyClickedElement;
-        downloadLink.style.display = "none";
-        document.body.appendChild(downloadLink);
-
-        downloadLink.click();
-        break;
-        
-    }	// End Switch Statement
-    
-  });
-  
-  // Handler for loading Text Files
-  jQuery('#loadTextFile').click(function() {
-    var fileInput = jQuery('#loadTextFile');
-    var fileDisplayArea = jQuery('#spintax-textarea');
-
-    jQuery(fileInput).change(function() {
-      var file = jQuery(fileInput).prop('files')[0];
-      var textType = /text.*/;
-
-      if (file.type.match(textType)) {
+    if (file.type.match(/text.*/)) {
         var reader = new FileReader();
-        reader.onload = function() {
-
-          jQuery(fileDisplayArea).val(reader.result);
-
-        }
         reader.readAsText(file);
-      } else {
-        jQuery(fileDisplayArea).val("File not supported!");
-      }
-    });
-  });
-  
-  // Function used by save file
-  function destroyClickedElement(event) {
-    document.body.removeChild(event.target);
-  }
-  
+        
+        reader.onload = function () {
+            textArea.innerHTML = reader.result;
+        }
+        
+    } else {
+        textArea.innerHTML = "File Not Support! Please use a TXT file.";
+    }
+});
+
+// Load List of Generic Keywords
+genericKeywords.addEventListener("click", function () {
+    var xhr = new XMLHttpRequest();
+
+    xhr.open("GET", "/tools/files/generic-keywords.txt");
+    xhr.onload = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            textArea.innerHTML = xhr.responseText;
+        } else {
+            textArea.innerHTML = "Loading Generic Keywords Failed!";
+        }
+    };
+    xhr.send();
+});
+
+// Clear TextArea
+clearText.addEventListener("click", function () {
+    textArea.innerHTML = "";
+});
+
+// Generate Spintax
+createSpintax.addEventListener("click", function () {
+    if (textArea.value) {
+        var data = textArea.innerHTML.split(/\r?\n/);
+        var cleaned = data.filter(n => n);
+        var result = cleaned.join("|");
+        result = "\{" + result + "\}";
+        textArea.innerHTML = result;
+    } else {
+        textArea.setAttribute("placeholder", "Hello! You need to add a list of words or phrases you would like to generate into spintax.");
+    }
+});
+
+// Save Results
+saveFile.addEventListener("click", function () {
+    var textToSaveAsBlob = new Blob([textArea.innerHTML], { type: "text/plain" });
+    var textToSaveAsURL = window.URL.createObjectURL(textToSaveAsBlob);
+    var fileNameToSaveAs = document.getElementById("save-filename").value + ".txt";
+    var downloadLink = document.createElement("a");
+    
+    downloadLink.download = fileNameToSaveAs;
+    downloadLink.href = textToSaveAsURL;
+    downloadLink.style.display = "none";
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
 });
